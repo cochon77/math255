@@ -1,0 +1,157 @@
+---
+title: "One-stage cluster sampling simulation"
+author: "Math 255 - St. Clair"
+output: pdf_document
+---
+```{r, include=FALSE}
+knitr::opts_chunk$set(collapse=TRUE, prompt=TRUE, comment=NULL,tidy.opts=list(width.cutoff=60),tidy=TRUE, fig.height=4, fig.width=5, message = FALSE, warning = FALSE)
+```
+
+### 1. The population
+The values in `Sim_Cluster_Pops.csv` represent a simulated population with response $y$ and three possible clustering variables `cluster1`, `cluster2` and `cluster3`. 
+
+```{r}
+pop <- read.csv("http://math.carleton.edu/kstclair/data/Sim_Cluster_Pops.csv")
+str(pop)
+```
+
+The population has the following characteristics:
+
+- $N = 100$ clusters for each clustering variable option 
+```{r}
+library(tidyverse)
+n_distinct(pop$cluster1)
+n_distinct(pop$cluster2)
+n_distinct(pop$cluster3)
+```
+
+- $M_i = M = 5$ elements per cluster for each clustering variable option
+```{r}
+pop %>% group_by(cluster1) %>% count() %>% ungroup() %>% summary()
+pop %>% group_by(cluster2) %>% count() %>% ungroup() %>% summary()
+pop %>% group_by(cluster3) %>% count() %>% ungroup() %>% summary()
+```
+
+- $M_0 = NM = 500$ elements in the population
+
+
+### 2. Simulation goals
+
+1. For a given response and clustering variable, compare precision of a one stage cluster sample of $n=5$ clusters (with $nM = 25$ elements) to a SRS of $n=25$ elements.
+
+2. How does 1 depend on the clustering variable?
+
+
+The following code chunk plots the reponse $y$ by cluster ID for the three cluster variable options. 
+```{r}
+pop_long <- pop %>% select(-X) %>% gather(key = cluster_type, value = cluster_id, cluster1:cluster3)
+str(pop_long)
+ggplot(pop_long, aes(x=cluster_id, y = y)) + geom_point() + facet_grid(rows = vars(cluster_type))
+```
+
+
+**Q1:** Consider taking a SRS of $n=5$ of these clusters and observing all element responses within the cluster. Which choice of cluster variable (`cluster1`, `cluster2` or `cluster3`) will yield a cluster sample that is most like a SRS of 25 elements? Which choice will yield a cluster sample that is least like a SRS of 25 elements?
+
+\newpage
+
+### 3. One-stage Cluster Sample
+What if we used the `cluster1` variable to define our clusters? Here we sample $n=5$ cluster ID's and extract the responses  
+```{r}
+SRS_clusID <- sample(1:100, size = 5, replace = FALSE)
+data_cluster1 <- pop %>% filter(cluster1 %in% SRS_clusID) %>% select(y, cluster1)
+data_cluster1 %>% arrange(cluster1)
+boxplot(y ~ cluster1, data_cluster1)
+```
+
+Similar for using `cluster2` (we can reuse the sample sample of cluster IDs since all three cluster variables just use integers 1-100 to ID clusters):
+```{r}
+data_cluster2 <- pop %>% filter(cluster2 %in% SRS_clusID) %>% select(y, cluster2)
+data_cluster2 %>% arrange(cluster2)
+boxplot(y ~ cluster2, data_cluster2)
+```
+
+Similar for using `cluster3`:
+```{r}
+data_cluster3 <- pop %>% filter(cluster3 %in% SRS_clusID) %>% select(y, cluster3)
+data_cluster3 %>% arrange(cluster3)
+boxplot(y ~ cluster3, data_cluster3)
+```
+
+**Q2:** Are these samples of 5 clusters similar reflections on how $y$ does, or does not, depend on cluster ID for the three types of clustering variable?
+
+\newpage
+
+### 4. Simulation
+Let's repeat part 3. samples many, many times and construct a one-stage cluster estimate of population mean for each. We will also take a SRS of 25 elements and get a SRS estimate of population mean too. For each sample, save the SRS estimate of population mean and the equal-cluster size one-stage estimate of population mean (just the sample mean of all elements).
+
+
+```{r}
+reps<- 10000  # simulation size
+n <- 5  # cluster sample size
+results <- data.frame(run = 1:reps, 
+                      est_srs = NA, 
+                      est_cluster1 = NA, 
+                      est_cluster2 = NA, 
+                      est_cluster3 = NA)
+
+for (i in 1:reps)
+{
+ # SRS
+ SRS_elemID <- sample(1:nrow(pop), size = n*5, replace=F)  # srs units
+ data_SRS <- pop[SRS_elemID, ]
+ results$est_srs[i]<- mean(data_SRS$y)  # sample mean from SRS
+ 
+ # cluster sample ID's
+ SRS_clusID <- sample(1:100, size = n, replace = FALSE)
+
+ # cluster sample 1
+ data_cluster1 <- pop %>% filter(cluster1 %in% SRS_clusID) 
+ results$est_cluster1[i]<- sum(data_cluster1$y)/(5*n)  # unbiased/ratio
+ 
+  # cluster sample 2
+ data_cluster2 <- pop %>% filter(cluster2 %in% SRS_clusID) 
+ results$est_cluster2[i]<- sum(data_cluster2$y)/(5*n)  # unbiased/ratio
+
+ # cluster sample 3
+ data_cluster3 <- pop %>% filter(cluster3 %in% SRS_clusID) 
+ results$est_cluster3[i]<- sum(data_cluster3$y)/(5*n)  # unbiased/ratio
+
+}
+
+```
+
+\newpage
+
+### 5. Compare Sampling Distributions
+The population mean is just over 20. 
+
+```{r}
+pop_mean <- mean(pop$y)
+pop_mean
+```
+
+How do our estimators compare in terms of bias and variability? We can make a boxplot of simulated sampling distributions of our four types of estimators:
+```{r}
+str(results)
+results_long <- results %>% gather(key = type, value = estimate, starts_with("est"))
+str(results_long)
+ggplot(results_long, aes(x=type, y = estimate)) + 
+  geom_boxplot() + geom_hline(yintercept = pop_mean, color="red")
+```
+
+And we can get simulated bias and SE:
+```{r}
+results_long %>% group_by(type) %>% 
+  summarize(expected_value = mean(estimate), 
+            bias = expected_value - pop_mean, 
+            percent_bias = 100*bias/pop_mean,
+            SE = sd(estimate))
+pop_mean
+```
+
+**Q3** (goal 1) For a clustering variable `cluster1`, compare precision of a one stage cluster sample of $n=5$ clusters (with $nM = 25$ elements) to a SRS of $n=25$ elements.
+
+\vspace*{2in}
+
+**Q4**  (goal 2) How does **Q3** depend on the clustering variable? COmpare the SRS to the choice of `cluster2` and `cluster3`. When will a cluster sample "beat" a SRS? WHen does a SRS "beat" a cluster sample? When are they similar? Think about how to write down a general rule of thumb for when cluster sampling is better than a SRS, in terms of precision.
+

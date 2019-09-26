@@ -1,0 +1,368 @@
+---
+title: "Math 255 - Homework 8"
+author: "Colin Pi"
+date: "Due in class, Friday May 17"
+output: pdf_document
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(collapse=TRUE, prompt=TRUE, comment=NULL,tidy.opts=list(width.cutoff=60),tidy=TRUE,eval=TRUE, out.width = "60%", fig.align = "center")
+library(ggplot2)
+library(dplyr)
+library(survey)
+library(SDaA)
+library(gridExtra)
+library(tidyverse)
+```
+
+### Problem 1
+Lohr textbook ch. 5 exercise 23\
+\
+$ICC = 1-\dfrac{M}{M-1}\dfrac{SSW}{SSTot}$\
+$\dfrac{M}{M-1}\dfrac{SSW}{SSTot} = 1-ICC$\
+$SSW = \dfrac{M-1}{M}SSTot(1-ICC)$\
+$MSW = \dfrac{SSW}{N(M-1)} = \dfrac{1}{N(M-1)}\dfrac{M-1}{M}SSTot(1-ICC) = \dfrac{SSTot}{NM}(1-ICC) = \dfrac{(NM-1)}{NM}S^2(1-ICC)$\
+\
+$ICC = 1-\dfrac{M}{M-1}\cdot\dfrac{SSW}{SSTot} = 1-\dfrac{M}{M-1}\cdot\dfrac{SSTot-SSB}{SSTot} = 1-\dfrac{M}{N-1}\cdot(1-\dfrac{SSB}{SSTot})$\
+$\dfrac{M}{M-1}\cdot\dfrac{SSB}{SSTot} = ICC-1+\dfrac{M}{M-1}$\
+$\dfrac{SSB}{SSTot} = \dfrac{M-1}{M}(ICC-1)+1$\
+$SSB = SSTot\cdot\dfrac{M-1}{M}(ICC-1)+SSTot$\
+$MSB = \dfrac{SSB}{N-1} = \dfrac{SSTot}{N-1}\cdot\dfrac{M-1}{M}(ICC-1)+\dfrac{SSTot}{N-1} = \dfrac{SSTot}{N-1}\dfrac{1}{M}((M-1)\cdot ICC-M+1+M) = \dfrac{(NM-1)}{M(N-1)}S^2(1+(M-1)ICC)$
+
+
+### Problem 2
+Lohr textbook ch. 5 exercise 11. Use the following cluster-level data set:
+
+```{r}
+audit <- read.csv("http://math.carleton.edu/kstclair/data/audit.csv")
+audit$N <- 828
+audit$n <- 85
+audit$wts <- audit$N/audit$n
+
+audit.design <- svydesign(id=~1, fpc=~N, weights=~wts, data = audit)
+```
+
+**(a)**
+
+$M$ = 215. Therefore, we can use unbiased estimator to get the error rate because we know $M_0 = NM = 18275$ so that we can plug it into $\hat{\bar{y}}_{unb} = \dfrac{\hat{t}_{unb}}{M_0}$ and $SE[\hat{\bar{y}}] = \dfrac{N}{M_0}SE[\bar{t}]$, where $\hat{t}_{unb} = \dfrac{N}{n}\sum\limits_{i=1}^nt_i,\ SE[\bar{t}] = \sqrt{(1-\dfrac{n}{N})\dfrac{s_t^2}{n}}$\
+
+We can use ratio estimation to produce a same result as unbiased estimation because the cluster sizes are equal to each other.
+
+```{r}
+svyratio(~errors, ~fields, audit.design)
+```
+
+$\hat{p}_{unb} = \hat{p}_{r} = 0.002024624$, $SE[\hat{p}_{unb}] = SE[\hat{p}_{r}] = 0.0003570679$
+
+**(b)**
+
+```{r}
+svytotal(~errors, audit.design)
+
+828*mean(audit$errors)
+828*sqrt((1-85/828)*var(audit$errors)/85)
+```
+
+$\hat{t}_{unb} = \dfrac{N}{n}\sum\limits_{i=1}^nt_i = 360.42$, $SE[\hat{t}_{unb}] = N\sqrt{(1-\dfrac{n}{N})\dfrac{s_t^2}{n}} = 63.565$
+
+**(c)**
+
+$\hat{p} = 0.002024624$\
+$V[\hat{p}_{srs}] = (1-\dfrac{n}{N})\dfrac{\hat{p}(1-\hat{p})}{n-1} = (1-\dfrac{18,275}{178,020})\dfrac{0.002024624\cdot(1-0.002024624)}{18,275-1} = 9.921768e-08$\
+$V[\hat{p}_{clus}] = SE[\hat{p}_{clus}]^2 = 0.0003570679^2 = 1.274975e-07$\
+$DEff = \dfrac{V[\hat{p}_{clus}]}{V[\hat{p}_{clus}]} = \dfrac{1.274975e-07}{9.921768e-08} = 1.285028$
+
+```{r}
+V_clus <- 0.0003570679^2
+V_srs <- (1-18275/178020)*0.002024624*(1-0.002024624)/18274
+Deff <- V_clus/V_srs
+Deff
+```
+
+### Problem 3
+Lohr textbook ch. 5 exercise 10.
+
+```{r}
+books <- read.csv("http://math.carleton.edu/kstclair/data/books.csv")
+```
+
+**(a)**
+
+```{r}
+boxplot(replace~shelf, data = books)
+```
+
+The mean cost of the replacement varies significantly by the shelves. Also the variance differs considerably as well. The replacement cost of the books in shelf 2, 4, 11, 14, 37, 40, and 43 are way more homogenous than that of the books shelf 20, 22, and 38. 
+
+**(b)**
+
+```{r}
+books$elem.id <- 1:nrow(books)
+books <- books %>% group_by(shelf) %>% mutate(mi = n()) %>% ungroup()
+books$N <- 44
+books$wts <- (books$N*books$Mi)/(n_distinct(books$shelf)*books$mi)
+books.design <- svydesign(id=~shelf+elem.id, fpc=~N+Mi, weights=~wts, data = books)
+svytotal(~replace, books.design)
+cv <- 5733.5/32637.7
+cv
+```
+
+$\hat{t}_{unbiased} = 32638,\ SE[\hat{t}_{unbiased}] = 5733.5,\ CV[\hat{t}_{unbiased}] = \dfrac{SE[\hat{t}_{unbiased}]}{\hat{t}_{unbiased}}$ = `r cv`
+
+**(c)**
+
+Since we do not know $M_0$, we have to use ratio estimation.
+
+$$
+\hat{\bar{y}}_r = \dfrac{\sum\limits_{i=1}^{n}\sum\limits_{j=1}^{M_i}\dfrac{N}{n}\dfrac{M_i}{m_i}y_{i,j}}{\sum\limits_{i=1}^{n}\sum\limits_{j=1}^{M_i}\dfrac{N}{n}\dfrac{M_i}{m_i}}
+$$
+
+```{r}
+svymean(~replace, books.design)
+cv.2 <- 5.4759/23.611
+cv.2
+```
+
+$\hat{\bar{y}}_{r} = 23.611,\ SE[\hat{\bar{y}}_{r}] = 5.4759,\ CV[\hat{\bar{y}}_{r}] = \dfrac{SE[\hat{\bar{y}}_{r}]}{\hat{\bar{y}}_{r}}$ = `r cv.2`
+
+### Problem 4
+Lohr textbook ch. 5 exercise 10.
+
+```{r}
+summary(aov(replace~as.factor(shelf), data = books))
+s2 <-  (48*488.4+11*2324.6)/59
+r2a <- 1 - 488.4/s2
+```
+
+$\hat{S}^2 = \dfrac{\hat{SSTO}}{dfTO} = \dfrac{\hat{SSW}+\hat{SSB}}{59} = \dfrac{(48)\hat{MSW} + (11)\hat{MSB}}{1319} + \dfrac{48\cdot 488.4 + 11\cdot 2324.6}{59}$ = `r (48*488.4+11*2324.6)/59` 
+\
+$R_a^2 = 1-\dfrac{\hat{MSW}}{\hat{S}^2} = 1-\dfrac{488.4}{830.7424}$ = `r 1-488.4/830.7424`
+\
+$R_a^2$ is less than 0.5. This suggest that the replacement cost of the books within the same shelf is not really homogeneous (maybe in a modest degree it is homogeneous).
+\
+$m_{opt} = \sqrt{\dfrac{c_1M(N-1)(1-R_a^2)}{c_2(NM-1)R_a^2}} = \sqrt{\dfrac{10\cdot30(44-1)(1-0.1091834)}{4(1320-1)0.1091834}}$ = `r sqrt((20*30*43*(1-0.1091834))/(4*(1320-1)*0.1091834))` $\approx 7$
+
+### Problem 5
+Lohr textbook ch. 5 exercise 12. Also use your “appropriate plot” to describe whether clusters look to be homogeneous with respect to length.
+
+```{r}
+coots <- read.csv("http://math.carleton.edu/kstclair/data/coots.csv")
+
+ggplot(coots, aes(x=csize, y=length)) + geom_point() + 
+  labs(x = "Clutch Size (M_i)", title = "Clutch Size v. Egg Length")
+ggplot(coots, aes(x=clutch, y=length)) + geom_point() +
+  labs(x = "Cluster ID", title = "Length of eggs within the same clutch")
+```
+
+We cannot observe any strong homogeneity of the egg lengths within the clusters. 
+
+```{r}
+coots$elem.id <- 1:nrow(coots) ## unique id for each unique element (egg)
+coots <- coots %>% group_by(clutch) %>% mutate(mi = n()) %>% ungroup()
+coots$wts <- coots$csize/coots$mi ## since N is unknown, give relative weights Mi/mi
+coots.design <- svydesign(id = ~clutch+elem.id, weights = ~wts, data = coots)
+mn.obj <- svymean(~length, coots.design)
+mn.obj
+```
+
+Since we do not have any information about $M_0$ (we cannot use $M_0$ = $NM$ because $M$ is not equal)\
+
+$$
+\hat{\bar{y}}_r = \dfrac{\sum\limits_{i=1}^{n}\sum\limits_{j=1}^{M_i}\dfrac{N}{n}\dfrac{M_i}{m_i}y_{i,j}}{\sum\limits_{i=1}^{n}\sum\limits_{j=1}^{M_i}\dfrac{N}{n}\dfrac{M_i}{m_i}} 
+$$
+
+$\hat{\bar{y}}_{r} = 48.65$, $SE[\hat{\bar{y}}_{r}] = 0.1292$
+
+### Problem 6
+Lohr textbook ch. 5 exercise 15.
+
+```{r}
+teachers.mi <- left_join(teachers, teachmi, by = "school")
+teachers.mi[, 3][teachers.mi[, 3] == -9] <- NA
+teachers.6 <- teachers.mi %>% filter(dist.x == "large") 
+``` 
+
+**(a)**
+
+If there is no full list of teachers in the study area, SRS might not be a viable option for collecting the data. And visiting the randomly selected clusters (schools) and conducting the survey to all the teachers in the school is much less costly and time-consuming that than visiting randomly selected teachers and conducting the survey. With an SRS of teachers, you might have to travel to a school just to conduct a survey to one teacher. Also, if the survey is collected in school level, confidentiality can be kept unless the respondent provides any personal information to the survey (researchers only know the school where the teacher is working at).
+
+**(b)**
+
+```{r}
+hrwork <- teachers.6 %>% group_by(school) %>% summarize(means = mean(hrwork, na.rm = TRUE), sds = sd(hrwork, na.rm = TRUE)) %>% ungroup()
+
+knitr::kable(hrwork)
+
+p1 <- ggplot(data = hrwork) +
+  geom_point(aes(x = as.factor(school), y = means)) +
+  labs(x = "School", y = "Means", title = "School v. Mean")
+
+p2 <- ggplot(data = hrwork) +
+  geom_point(aes(x = as.factor(school), y = sds)) +
+  labs(x = "School", y = "SDs", title = "School v. SD")
+
+grid.arrange(p1,p2,ncol=2)
+
+boxplot(hrwork ~ as.factor(school), data = teachers.6)
+```
+
+The means of `hrwork` varies considerably by schools, whereas the standard deviations by school do not vary as much as the mean. This indicates that more variation is occurred from between the schools. I replaced -9 with `NA` and omitted them from the calculation. 
+
+**(c)**
+
+```{r}
+ggplot(data = hrwork) + 
+  geom_point(aes(x = means, y = sds)) + 
+  labs(x = "Means", y = "SDs")
+```
+
+We do see there is a slight positive association between the means and the standard deviations. In other words, there is more variablity in schools with a higher workload.  
+
+**(d)**
+
+```{r}
+teachers.6$elem.id <- 1:nrow(teachers.6)
+teachers.6$wts <- teachers.6$popteach/teachers.6$ssteach
+teachers.clus <- svydesign(id=~school+elem.id, weights=~wts, data = teachers.6)
+svymean(~hrwork, teachers.clus, na.rm = TRUE)
+```
+
+$\hat{\bar{y}}_{r} = 33.821$, $SE[\hat{\bar{y}}_{r}] = 0.7444$
+
+### Problem 7
+
+**(a)**
+
+```{r}
+response <- teachers.mi %>% group_by(school) %>% summarize(M = first(popteach), m = first(ssteach))
+rate <- sum(response$m)/sum(response$M)
+rate
+```
+
+Response Rate = $\dfrac{\sum m_i}{\sum M_i}$ 0.4111406
+
+**(b)**
+
+Teachers with heavier workload may not likely to respond to the survey because they may have no time to fill in the survey. 
+
+**(c)**
+
+```{r}
+summary(teachnr)
+summary(teachers.6 %>% select(hrwork, size, preprmin, assist))
+
+teachnr$response = "Not responded"
+teachers.6$response = "Responded"
+
+comp <- rbind(teachers.6 %>% select(hrwork, size, preprmin, assist, response), teachnr)
+
+par(mfrow=c(1,2))
+boxplot(hrwork~response, data = comp, main = "hrwork")
+boxplot(size~response, data = comp, main = "size")
+par(mfrow=c(1,1))
+
+par(mfrow=c(1,2))
+boxplot(preprmin~response, data = comp, main = "preprmin")
+boxplot(assist~response, data = comp, main = "assist")
+par(mfrow=c(1,1))
+
+svymean(~hrwork+size+preprmin+assist, teachers.clus, na.rm = TRUE)
+svymean(~hrwork, teachers.clus, na.rm = TRUE)
+```
+
+In average, the minutes per week that a teacher’s aide works with the teacher in the classroom is higher among the non-response group. Also the spread of this variable considerably bigger in nonresponse group than in original group. 
+
+**(d)**
+
+We do see there is a noticeable difference in the average minutes per week that a teacher's aide works with the teacher in the classroom between the original and the nonresponse group. Such difference indicates that there may be a nonresponse bias.
+
+### Problem 8
+
+```{r}
+ozone.long <- gather(ozone, key = hour, value = level, GMT1:GMT24)
+```
+
+**(a)**
+
+```{r, message=FALSE}
+ggplot(ozone.long) +
+  geom_histogram(aes(x = level), bins = 30)
+mean(ozone.long$level, na.rm = T)
+sd(ozone.long$level, na.rm = T)
+```
+
+$\bar{y}_U$ = 27.60979, $S_U$ = 11.42391
+
+**(b)**
+
+```{r}
+set.seed(70)
+k <- sample(1:24, 1)
+k
+gmt2 <- ozone.long %>% filter(hour == "GMT2")
+
+ggplot(gmt2) +
+  geom_histogram(aes(x = level), bins = 30)
+mean(gmt2$level, na.rm = T)
+```
+
+Distribution is less skewed to the right and spread out than the population distribution. The mean is smaller than the population mean.
+
+**(c)**
+
+```{r}
+gmt2$N <- nrow(ozone.long)
+gmt2$n <- nrow(gmt2)
+gmt2$wts <- gmt2$N/gmt2$n
+ozone.srs <- svydesign(ids=~1, fpc=~N, weights=~wts, data = gmt2)
+svymean(~level, ozone.srs, na.rm=T)
+confint(svymean(~level, ozone.srs, na.rm=T))
+```
+
+The CI does not include the population mean.
+
+**(d)**
+
+```{r, message = FALSE}
+ggplot(ozone.long, aes(x=parse_number(hour), y=level)) + geom_point() + geom_smooth()
+```
+
+We can observe that both high and ozone levels were recorded in GMT2 period, so the ICC will be smaller than 0. Therefore, SRS SE may overestimate the true variability of the systematic sample.
+
+**(e)**
+
+```{r}
+set.seed(70)
+start <- sample(1:96, size=4, replace = FALSE)
+start
+
+rows.samp1 <- start[1] + 96*(0:182)
+data.samp1 <- slice(ozone.long, rows.samp1)
+data.samp1$cluster <- "cluster 1"
+data.samp1$clustersize <- nrow(data.samp1)
+
+rows.samp2 <- start[2] + 96*(0:182)
+data.samp2 <- slice(ozone.long, rows.samp2)
+data.samp2$cluster <- "cluster 2"
+data.samp2$clustersize <- nrow(data.samp2)
+
+rows.samp3 <- start[3] + 96*(0:182)
+data.samp3 <- slice(ozone.long, rows.samp3)
+data.samp3$cluster <- "cluster 3"
+data.samp3$clustersize <- nrow(data.samp3)
+
+rows.samp4 <- start[4] + 96*(0:182)
+data.samp4 <- slice(ozone.long, rows.samp4)
+data.samp4$cluster <- "cluster 4"
+data.samp4$clustersize <- nrow(data.samp4)
+
+data.sys <- bind_rows(data.samp1, data.samp2, data.samp3, data.samp4)
+data.sys$N <- 96
+data.sys$n <- n_distinct(data.sys$cluster)
+data.sys$wts <- data.sys$N/data.sys$n
+
+ozone.sys <- svydesign(id=~cluster, fpc=~N, weights=~wts, data = data.sys)
+confint(svymean(~level, ozone.sys, na.rm = T))
+```
+
+The confidence interval still does not capture the true mean ozone level.

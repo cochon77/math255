@@ -1,0 +1,187 @@
+---
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse=TRUE, prompt=TRUE, comment=NULL,tidy.opts=list(width.cutoff=60),tidy=TRUE,eval=TRUE, fig.align = "center", out.width = "90%")
+library(survey)
+library(dplyr)
+library(ggplot2)
+library(stargazer)
+library(gridExtra)
+```
+
+## Appendix
+
+### Sampling Procedures
+
+```{r}
+#List of the department
+department <- 
+  c("AFST","AMST","ARBC","ARTH","ASST","ASTR","BIOL","CHEM","CHIN","CAMS","CLAS","CGSC","CS","CCST","DANC","ECON","EDUC","ENGL","ENTS","EUST","FREN","GEOL","GERM","GRK","HIST","IDSC","JAPN","LATN","LTAM","LING","LCST","MATH","MUSC","NEUR","PHIL","PE","PHYS","POSC","PSYC","RELG","RUSS","SOAN","SPAN","ARTS","THEA","WGST")
+
+mi <- 2 # size of ssus
+n <- 20 # size of psus
+
+set.seed(50)
+clus <- sample(department, n, replace = F) # SRS of the departments with size = 20
+clus # department sampled
+
+set.seed(45)
+danc <- sample(10, mi, replace = F) # SRS of the classes with size = 2
+danc # row number of the sampled classes the list of classes
+danc.data <- data.frame(size = c(20,25), reg = c(15,11), dept = "danc", Mi = 10)
+
+clas <- sample(4, mi, replace = F) # SRS of the classes with size = 2
+clas  # row number of the sampled classes the list of classes
+clas.data <- data.frame(size = c(25,15), reg = c(23,15), dept = "clas", Mi = 4)
+
+cams <- sample(15, mi, replace = F) # SRS of the classes with size = 2
+cams  # row number of the sampled classes the list of classes
+cams.data <- data.frame(size = c(25,0), reg = c(28,11), dept = "cams", Mi = 15)
+
+geol <- sample(11, mi, replace = F) # SRS of the classes with size = 2
+geol  # row number of the sampled classes the list of classes 
+geol.data <- data.frame(size = c(20,18), reg = c(25,17), dept = "geol", Mi = 11)
+
+musc <- sample(220, mi, replace = F) # SRS of the classes with size = 2
+musc  # row number of the sampled classes the list of classes 
+musc.data <- data.frame(size = c(50,50), reg = c(1,0), dept = "musc", Mi = 220)
+
+eust <- sample(2, mi, replace = F) # SRS of the classes with size = 2
+eust.data <- data.frame(size = c(15,24), reg = c(15,22), dept = "eust", Mi = 2)
+
+chin <- sample(6, mi, replace = F) # SRS of the classes with size = 2
+chin  # row number of the sampled classes the list of classes
+chin.data <- data.frame(size = c(16,25), reg = c(2,9), dept = "chin", Mi = 6)
+
+wgst <- sample(8, mi, replace = F) # SRS of the classes with size = 2
+wgst  # row number of the sampled classes the list of classes
+wgst.data <- data.frame(size = c(25,30), reg = c(7,10), dept = "wgst", Mi = 8)
+
+amst <- sample(3, mi, replace = F) # SRS of the classes with size = 2
+amst  # row number of the sampled classes the list of classes
+amst.data <- data.frame(size = c(25,25), reg = c(15,10), dept = "amst", Mi = 3)
+
+latn <- sample(3, mi, replace = F) # SRS of the classes with size = 2
+latn # row number of the sampled classes the list of classes 
+latn.data <- data.frame(size = c(25,25), reg = c(14,8), dept = "latn", Mi = 3)
+
+idsc <- sample(14, mi, replace = F) # SRS of the classes with size = 2
+idsc # row number of the sampled classes the list of classes
+idsc.data <- data.frame(size = c(0,15), reg = c(4,8), dept = "idsc", Mi = 14)
+
+russ <- sample(5, mi, replace = F) # SRS of the classes with size = 2
+russ # row number of the sampled classes the list of classes
+russ.data <- data.frame(size = c(20,10), reg = c(7,3), dept = "russ", Mi = 5)
+
+arth <- sample(10, mi, replace = F) # SRS of the classes with size = 2
+arth # row number of the sampled classes the list of classes
+arth.data <- data.frame(size = c(25,25), reg = c(22,20), dept = "arth", Mi = 10)
+
+soan <- sample(15, mi, replace = F) # SRS of the classes with size = 2
+soan # row number of the sampled classes the list of classes
+soan.data <- data.frame(size = c(25,25), reg = c(6,1), dept = "soan", Mi = 15)
+
+arbc <- sample(3, mi, replace = F) # SRS of the classes with size = 2
+arbc # row number of the sampled classes the list of classes
+arbc.data <- data.frame(size = c(16,25), reg = c(17,15), dept = "arbc", Mi = 3)
+
+arts <- sample(11, mi, replace = F) # SRS of the classes with size = 2
+arts # row number of the sampled classes the list of classes
+arts.data <- data.frame(size = c(11,14), reg = c(14,10), dept = "arts", Mi = 11)
+
+fren <- sample(11, mi, replace = F) # SRS of the classes with size = 2
+fren # row number of the sampled classes the list of classes
+fren.data <- data.frame(size = c(15,20), reg = c(9,9), dept = "fren", Mi = 11)
+
+psyc <- sample(17, mi, replace = F) # SRS of the classes with size = 2
+psyc # row number of the sampled classes the list of classes 
+psyc.data <- data.frame(size = c(1,30), reg = c(1,17), dept = "psyc", Mi = 17)
+
+span <- sample(22, mi, replace = F) # SRS of the classes with size = 2
+span # row number of the sampled classes the list of classes 
+span.data <- data.frame(size = c(20,16), reg = c(19,16), dept = "span", Mi = 22)
+
+asst <- sample(4, mi, replace = F) # SRS of the classes with size = 2
+asst # row number of the sampled classes the list of classes 
+asst.data <- data.frame(size = c(25,25), reg = c(5,3), dept = "asst", Mi = 4)
+
+# Combine all the data 
+data.class <- rbind(asst.data, span.data, psyc.data, fren.data, arts.data, arbc.data, soan.data, arth.data, russ.data, idsc.data, latn.data, amst.data, wgst.data, chin.data, eust.data, musc.data, geol.data, cams.data, clas.data, danc.data)
+```
+
+### Data Analysis
+
+```{r}
+data.class$mi <- mi # mi = 2
+data.class$N <- 46
+data.class$n <- n # n = 20
+data.class$wts <- data.class$N/data.class$n*data.class$Mi/data.class$mi # sampling weights
+data.class$elem.id <- 1:nrow(data.class)
+data.class$less20 <- ifelse(data.class$reg < 20, 1, 0) # registered size < 20
+
+# survey object
+class.clus <- svydesign(id=~dept+elem.id, fpc= ~N+Mi, weights= ~wts, data=data.class) 
+
+# average number of seats available in the class
+(size.est <- svymean(~size, class.clus, deff = T))
+confint(size.est)
+
+# average number of registered students in each class
+(reg.est <- svymean(~reg, class.clus, deff = T))
+confint(reg.est)
+
+# ratio of registered size to the number of available seats
+(ratio.est <- svyratio(~reg, ~size, class.clus))
+confint(ratio.est)
+
+# proportion of classes that have registered enrollments less than 20 students
+(less20.est <- svymean(~less20, class.clus, deff = T))
+confint(less20.est)
+```
+
+## Adjusted R-squared
+
+```{r}
+summary(lm(size~as.factor(dept),data=data.class))$adj.r.squared # number of available seats
+summary(lm(reg~as.factor(dept),data=data.class))$adj.r.squared # registration size
+summary(lm(less20~as.factor(dept),data=data.class))$adj.r.squared # registration size < 20
+```
+
+## Summary Statistics
+
+```{r, results='asis'}
+stargazer(data.class, type = "html")
+```
+
+## Graphing the Data
+
+```{r}
+par(mfrow=c(1,2)) 
+svyboxplot(size~1,class.clus, main  = "Available Seats")
+abline(h = 20, col = "red")
+svyboxplot(reg~1,class.clus, main = "Registered Class Size", ylim = c(0,50))
+abline(h = 20, col = "red")
+par(mfrow=c(1,1))
+
+g1 <- ggplot(data.class, aes(x = size, y = reg)) +
+  geom_point() + 
+  geom_smooth() +
+  labs(x = "Available Seats", y = "Registered Class Size", title = "With Outliers")
+
+cor(data.class$size, data.class$reg)
+
+# Omit the outliers
+data.class2 <- data.class %>% filter(dept != "musc")
+
+g2 <- ggplot(data.class2, aes(x = size, y = reg)) +
+  geom_point() + 
+  geom_smooth() +
+  labs(x = "Available Seats", y = "Registered Class Size", title = "Without Outliers")
+
+cor(data.class2$size, data.class2$reg)
+
+grid.arrange(g1,g2, ncol = 2)
+```
+

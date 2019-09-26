@@ -1,0 +1,288 @@
+---
+title: "Math 255 - Homework 3"
+author: "Colin Pi"
+date: "Due in class, Wednesday April 15"
+output: pdf_document
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(collapse=TRUE, prompt=TRUE, comment=NULL,tidy.opts=list(width.cutoff=60),tidy=TRUE,eval=TRUE, out.width = "60%")
+library(ggplot2)
+library(dplyr)
+library(survey)
+library(SDaA)
+```
+
+### Problem 1
+Lohr textbook ch. 2 exercise 14. Data set is missing from SDaA so use the file:
+
+```{r}
+ssc <- read.csv("http://math.carleton.edu/kstclair/data/ssc.csv")
+```
+
+**(a)** The members of SSC not in the online directory is not considered. Also, it only covers workers in academics, government, and industry. These possibly lead to undercoverage issue.  
+
+**(b)**
+
+```{r}
+ssc$N <- 864
+ssc$wts <- ssc$N/nrow(ssc)
+design1.srs <- svydesign(id = ~1, fpc =  ~N, weights = ~ wts, data = ssc)
+svymean(~sex, design1.srs)
+confint(svymean(~sex, design1.srs), df = degf(design1.srs))  ## can I just use z distribution for proportion?
+
+sex <- ifelse(ssc$sex == "f", 1,0)
+se <- sqrt((1-length(sex)/864)*(mean(sex)*(1-mean(sex)))/(length(sex)-1))
+mean(sex) + se*qt(c(0.025,0.975), df = length(sex)-1)
+```
+
+$\hat{p}_{female}$ = 0.30667\
+95% CI: (0.2388099 0.3745234)
+
+**(c)**
+
+```{r}
+svytotal(~sex, design1.srs)
+confint(svytotal(~sex, design1.srs), df = degf(design1.srs))
+
+se <- 864*sqrt((1-nrow(ssc)/864)*(mean(sex)*(1-mean(sex)))/(nrow(ssc)-1))
+mean(sex)*864 + se*qt(c(0.025,0.975), df = nrow(ssc)-1)
+```
+
+$\hat{t}_{female}$ = 264.96\
+95% CI: (206.3317, 323.5883)
+
+### Problem 2
+Lohr textbook ch. 2 exercise 15. Data set `agsrs`\
+
+```{r}
+agsrs$N <- 3078
+agsrs$wts <- agsrs$N/nrow(agsrs)
+design2.srs <- svydesign(id = ~1, fpc =  ~N, weights = ~ wts, data = agsrs)
+```
+
+**(a)**
+
+```{r, fig.align='center'}
+hist(agsrs$acres87, main = "Acres devoted to Farm (1987)", xlab = "")
+svymean(~acres87, design2.srs)
+confint(svymean(~acres87, design2.srs), df = degf(design2.srs))
+
+se <- sqrt(1-nrow(agsrs)/3078)*sd(agsrs$acres87)/sqrt(nrow(agsrs))
+mean(agsrs$acres87)+qt(c(0.025,0.975), df = nrow(agsrs)-1)*se
+```
+
+$\hat{\bar{y}}_{U, 1987}$ = 301954 Acres\
+95% CI: (264733, 339174.5)
+
+**(b)**
+
+```{r, fig.align='center'}
+hist(agsrs$farms92, main = "Number of Farms (1992)", xlab = "")
+svymean(~farms92, design2.srs)
+confint(svymean(~farms92, design2.srs), df = degf(design2.srs))
+
+se <- sqrt(1-nrow(agsrs)/3078)*sd(agsrs$farms92)/sqrt(nrow(agsrs))
+mean(agsrs$farms92)+qt(c(0.025,0.975), df = nrow(agsrs)-1)*se
+```
+
+$\hat{\bar{y}}_{U, 1987}$ = 599.06\
+
+95% CI: (555.6426, 642.4774)
+
+**(c)**
+
+```{r, fig.align='center'}
+hist(agsrs$largef92, main = "Number of Farms with 1000 acres or more (1992)", xlab = "")
+svymean(~largef92, design2.srs)
+confint(svymean(~largef92, design2.srs), df = degf(design2.srs))
+
+se <- sqrt(1-nrow(agsrs)/3078)*sd(agsrs$largef92)/sqrt(nrow(agsrs))
+mean(agsrs$largef92)+qt(c(0.025,0.975), df = nrow(agsrs)-1)*se
+```
+
+$\hat{\bar{y}}_{U, 1992}$ = 56.593\
+95% CI: (48.7406, 64.44606)
+
+**(d)**
+
+```{r, fig.align='center'}
+hist(agsrs$smallf92, main = "Number of Farms with 9 acres or fewer (1992)", xlab = "")
+svymean(~smallf92, design2.srs)
+confint(svymean(~smallf92, design2.srs), df = degf(design2.srs))
+
+se <- sqrt(1-nrow(agsrs)/3078)*sd(agsrs$smallf92)/sqrt(nrow(agsrs))
+mean(agsrs$smallf92)+qt(c(0.025,0.975), df = nrow(agsrs)-1)*se
+```
+
+$\hat{\bar{y}}_{U, 1992}$ = 46.823\
+95% CI: (39.6649, 53.98177)
+
+### Problem 3
+Lohr textbook ch. 2 exercise 16. Data set `golfsrs`
+
+**(a)**
+
+```{r, fig.align='center'}
+hist(golfsrs$wkday9, main = "Weekday Green Fees, 9 holes", xlab = "")
+```
+
+The distribution is heavility skewed to the right.
+
+**(b)**
+
+```{r}
+golfsrs$N <- 14938
+golfsrs$wts <- golfsrs$N/nrow(golfsrs)
+design3.srs <- svydesign(id = ~1, fpc = ~N, weights = ~wts, data = golfsrs)
+svymean(~wkday9, design3.srs)
+
+se <- sqrt(1-nrow(golfsrs)/14938)*sd(golfsrs$wkday9)/sqrt(nrow(golfsrs))
+se
+```
+
+Average weekday greens fee to play 9 holes of golf = $20.153\
+SE: $1.6299
+
+### Problem 4
+Lohr textbook ch. 2 exercise 18
+
+```{r}
+holes18 <- ifelse(golfsrs$holes == 18, 1, 0)
+design3.srs <- update(design3.srs, holes18 = holes18)
+svymean(~holes18, design3.srs)
+confint(svymean(~holes18, design3.srs), df = degf(design3.srs))
+
+mean(holes18)
+
+se <- sqrt((1-length(holes18)/14938)*(mean(holes18)*(1-mean(holes18)))/(length(holes18)-1))
+mean(holes18) + se*qt(c(0.025,0.975), df = length(holes18)-1)
+```
+
+$\hat{p}_{18\ holes}$ = 0.70833\
+95% CI: (0.6261612, 0.7905054)
+
+### Problem 5
+Lohr textbook ch. 2 exercise 19.\
+$n_0$, the required sample size we would use for SRS without replacement, is defined as
+$$
+n_0 = (\dfrac{z_{\alpha/2}S}{e})^2.
+$$
+For a large populations, $S^2 \approx p(1-p)$, and the maximum of $S^2$ is at which p = 1/2. If we plug-in p = 1/2 to get the maximum $S^2$, $z_{\alpha/2}$ = 1.96, and e = 0.04, $n_0$ = $(\dfrac{1.96}{0.04})^2\cdot1/4$ = 600.25. If we plug-in $n_0$ to the equation below,
+
+$$
+n = \dfrac{n_0}{1+\dfrac{n_0}{N}} = \dfrac{600.25}{1+\dfrac{600.25}{N}}
+$$
+
+```{r} 
+city <- c("Buckeye","Gillbert","Gila Bend","Phoenix","Tempe")
+N <- c(4857, 59338, 1724, 1149417, 153821)
+n <- unlist(lapply(N, function(x){return(600.25/(1+600.25/x))}))
+sample.size <- data.frame(City = city, Population = N, Sample.Size = n)
+knitr::kable(sample.size)
+```
+
+For the cities with population above 50k, the required sample size to have margin of error of 4% is close to 600 ($n_0$, which does not put fpc into consideration). But the required sample size for small cities like Buckeye and Gila Bend shows a huge deviation from $n_0$, suggesting that fpc makes a huge difference for the populations with small size.
+
+### Problem 6
+Lohr textbook ch. 2 exercise 32.
+
+**(a)**
+```{r}
+pop <- read.csv("http://math.carleton.edu/kstclair/data/baseball.csv",
+header=FALSE, na.strings = c("NA"," ", "."))
+
+names(pop) <- c("team","league","player","salary","POS","G","GS",
+"InnOuts","PO","A","E","DP","PB","GB","AB","R","H",
+"SecB","ThiB","HR","RBI","SB","CS","BB","SO","IBB",
+"HPB","SH","SF","GIDP")
+
+pop$logsal <- log(pop$salary)
+n <- 150
+
+set.seed(30) # put your favorite large integer here
+samp <- sample(1:nrow(pop), size = n, replace = FALSE)
+baseball.srs <- pop[samp,]
+str(baseball.srs)
+```
+
+**(b)**
+
+```{r, fig.align='center'}
+par(mfrow=c(1,2))
+hist(baseball.srs$salary, main = "Salary", xlab = "")
+hist(baseball.srs$logsal, main = "Salary, in log scale", xlab = "")
+par(mfrow=c(1,1))
+```
+
+The distributions of both salary and logsal are heavily skewed to the right, but the distribution of logsal is less skewed than that of Salary.
+
+**(c)**
+
+```{r}
+baseball.srs$N <- 797
+baseball.srs$wts <- 797/nrow(baseball.srs)
+design6.srs <- svydesign(id=~1, fpc = ~N, weights = ~wts, data = baseball.srs)
+svymean(~logsal, design6.srs)
+confint(svymean(~logsal, design6.srs), df = degf(design6.srs))
+
+se <- sqrt(1-nrow(baseball.srs)/797)*sd(baseball.srs$logsal)/sqrt(nrow(baseball.srs))
+mean(baseball.srs$logsal)+qt(c(0.025,0.975), df = nrow(baseball.srs)-1)*se
+```
+
+$\hat{\bar{logsal}}$ = 13.948\
+95% CI: (13.76949, 14.12649)
+
+**(d)**
+
+```{r}
+pitcher <- ifelse(baseball.srs$POS == "P", 1, 0)
+design6.srs <- update(design6.srs, pitcher = pitcher)
+svymean(~pitcher, design6.srs)
+confint(svymean(~pitcher, design6.srs), df = degf(design6.srs))
+
+se <- sqrt((1-length(pitcher)/797)*(mean(pitcher)*(1-mean(pitcher)))/(length(pitcher)-1))
+mean(pitcher) + se*qt(c(0.025,0.975), df = length(pitcher)-1)
+```
+
+$\hat{p}_{pitcher}$ = 0.48667\
+95% CI: (0.4137654, 0.559568)
+
+**(e)**
+
+```{r}
+mean(pop$logsal)
+pitcher.pop <- ifelse(pop$POS == "P", 1,0)
+mean(pitcher.pop)
+```
+
+$\bar{logsal}_U$ = 13.92706\
+$p_{pitcher}$ = 0.4717691\
+Both parameters are included in the CIs calculated above.
+
+### Problem 7
+
+$$
+n_{min} = 28 + 25(\dfrac{\sum_{i=1}^{N}(y_i-\bar{y}_U)^3}{NS^3})^2
+$$
+
+```{r}
+mean.diff.salary <- pop$salary-mean(pop$salary)
+N <- 797
+S.salary <- sd(pop$salary)
+n_min.salary <- 28+25*((sum(mean.diff.salary^3))/(N*S.salary^3))^2
+
+mean.diff.logsal <- pop$logsal-mean(pop$logsal)
+S.logsal <- sd(pop$logsal)
+n_min.logsal <- 28+25*((sum(mean.diff.logsal^3))/(N*S.logsal^3))^2
+```
+
+$n_{min,\ salary}$ = `r n_min.salary`\
+$n_{min,\ logsal}$ = `r n_min.logsal`
+
+### Problem 8
+
+$\dfrac{1}{\pi_i} = \dfrac{N}{n},\ E[Z_i] = \dfrac{n}{N}$ 
+\
+$E[\hat{t}] = E[\sum\limits_{i\in S}\dfrac{y_i}{\pi_i}] = E[\sum\limits_{i=1}^{N}\dfrac{y_i}{\pi_i}Z_i] = \dfrac{N}{n}E[\sum\limits_{i=1}^{N}y_iZ_i] = \dfrac{N}{n}\dfrac{n}{N}E[\sum\limits_{i=1}^{N}y_i] = E[t]$
+
